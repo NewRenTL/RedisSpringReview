@@ -54,6 +54,15 @@ public class PersonaController {
                     body(personServiceIn.obtenerPersonDocuIn(dni).get());
     }
 
+    @Operation(summary = "Get a person by id"
+    ,description = "Get only a person who has the same id")
+    @GetMapping("/getid/{id}")
+    public ResponseEntity<PersonaDTO> getPerson2(@PathVariable Long id)
+    {
+        return ResponseEntity.
+                status(HttpStatus.OK)
+                .body(personServiceIn.obtenerPersonaIn(id).get());
+    }
 
     @Operation(summary ="Get all the people",
     description = "Get all the people by Get Method")

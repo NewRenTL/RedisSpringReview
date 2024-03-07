@@ -9,10 +9,12 @@ import com.codigo.msbustamantepalomino.infrastructure.entity.PersonaEntity;
 import com.codigo.msbustamantepalomino.infrastructure.entity.TipoDocumentoEntity;
 import com.codigo.msbustamantepalomino.infrastructure.entity.TipoPersonaEntity;
 import com.codigo.msbustamantepalomino.infrastructure.mapper.PersonaMapper;
+import com.codigo.msbustamantepalomino.infrastructure.redis.RedisService;
 import com.codigo.msbustamantepalomino.infrastructure.repository.PersonaRepository;
 import com.codigo.msbustamantepalomino.infrastructure.repository.TipoDocumentoRepository;
 import com.codigo.msbustamantepalomino.infrastructure.repository.TipoPersonaRepository;
 import com.codigo.msbustamantepalomino.infrastructure.rest.client.ClientReniec;
+import com.codigo.msbustamantepalomino.infrastructure.util.Util;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,8 @@ public class PersonaAdapter implements PersonServiceOut {
     private final TipoPersonaRepository tipoPersonaRepository;
     private final PersonaMapper personaMapper;
     private final ClientReniec clientReniec;
+    private final RedisService redisService;
+    private final Util util;
 
     @Value("${token.api}")
     private String tokenApi;
@@ -44,7 +48,21 @@ public class PersonaAdapter implements PersonServiceOut {
 
     @Override
     public Optional<PersonaDTO> obtenerPersonaOut(Long id) {
-        return Optional.ofNullable(personaMapper.mapToDTO(personaRepository.findById(id).get()));
+        //I concatenate with my id
+        String redisInfo = redisService.getFromRedis(Constants.REDIS_KEY_PERSONA+id);
+        if(redisInfo != null)
+        {
+            PersonaDTO personaDTO = util.convertFromJson(redisInfo,PersonaDTO.class);
+            return Optional.of(personaDTO);
+        }
+        else
+        {
+            PersonaDTO dto = personaMapper.mapToDTO(personaRepository.findById(id).get());
+            String redis = util.convertToJson(dto);
+            redisService.saveInRedis(Constants.REDIS_KEY_PERSONA+id,redis,1);
+            return Optional.of(dto);
+        }
+        //return Optional.ofNullable(personaMapper.mapToDTO(personaRepository.findById(id).get()));
     }
 
     @Override
